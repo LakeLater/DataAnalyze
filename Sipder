@@ -134,4 +134,13 @@ while True:
         print("error")
         continue
 
-
+"""
+最好设置代理防止IP被ban，同时使用其他技术提高速度
+由于GIL锁，采用多进程
+多进程示例（需改进爬虫程序逻辑）：
+pool=Pool(processes=10)
+for i in range(0,1):
+    pool.apply_async(S.get_item,(url_sina_q,proxy))
+pool.close()
+pool.join()
+"""
