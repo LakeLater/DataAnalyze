@@ -1,0 +1,137 @@
+# -*- coding=utf-8 -*-
+
+#包引区
+import re
+import time
+import random
+import pymysql
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+#常量区
+url_sina_wb="https://weibo.com/"
+url_sina_q="https://s.weibo.com/weibo?"
+link_add_word=['公安','警方','警员','警察','警局','警探','公共安全','police',
+                 '警铃','警容','警嫂','警花','警司','警监','警务','警衔','警棍',
+                 '警卫','警械','警车','警风','警种','警服','逮捕','拘留','通缉',
+                 '监视居住','取保候审','狱警','警长','巡逻','恐怖主义','出警','派出所',
+                 '乘警','铁警','火警','海警','处警','督查','自杀','交警','警力','警官']
+link_basic_word=[i for i in link_add_word]
+
+key_word=['公安','警']
+header_selfdefine={
+     'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36',
+     'Accept': '*/*',
+     'Accept-Language': 'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2',
+     'Accept-Encoding': 'gzip, deflate',
+     'Referer': 'https://weibo.com/'
+}
+chromedriver="C:\Program Files (x86)\Google\Chrome\Application\chromedriver"
+user_agent=['user-agent="MQQBrowser/26 Mozilla/5.0 (Linux; U; Android 2.3.7; zh-cn; MB200 Build/GRJ22; CyanogenMod-7) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1',
+            'user-agent="MQQBrowser/26 Mozilla/5.0 (Linux; U; Android 2.3.7; zh-cn; MB200 Build/GRJ22; CyanogenMod-7) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36'
+            ]
+
+#代码逻辑区
+class Spider_wb():
+    def __init__(self):
+        self.conn = pymysql.connect(host="127.0.0.1", port=3306, user="root", passwd="root", db="mydb", charset='utf8')
+        self.cursor = self.conn.cursor()
+        # 指定谷歌浏览器路径,linux中需要修改
+
+
+    def check_mid(self,mid):
+        if self.cursor.execute("select mid from basic WHERE mid='%s'"%mid):
+            return 1
+        else:return 0
+
+    def chrome_opt(self):
+        chrome_options = Options()
+        chrome_options.add_argument('headless')#无头模式
+        chrome_options.add_argument('lang=zh_CN.UTF-8')  # 编码格式
+        chrome_options.add_argument('--disable-gpu')  # 禁用GPU,因为不需要显示界面
+        chrome_options.add_argument('--no-sandbox')  # 这是一个谷歌浏览器的文件安全性过滤器，爬虫不需要开启
+        prefs = {"profile.managed_default_content_settings.images": 2}
+        chrome_options.add_experimental_option("prefs", prefs)#禁止图片加载
+        return chrome_options
+        # 然后进行页面渲染，源码获取
+
+
+    def get_item(self,url):
+         key=random.choice(link_add_word)
+         url = url + 'q=%s'%key + '&Refer=user_weibo'
+
+         print("GET %s"%url)
+         try:
+             self.driver = webdriver.Chrome(chrome_options=self.chrome_opt(), executable_path=chromedriver)
+             self.driver.get(url)
+             html = self.driver.page_source
+             self.driver.quit()
+
+         except:
+             return "error! [%s] return nothing"%url
+         #if r.status==429:
+             #time.sleep(5)
+             #return "429! too many times"
+         else: time.sleep(random.randint(2,5))
+         bs=BeautifulSoup(html,"html.parser")
+         all=bs.find_all("div",class_="card-wrap")
+         length=len(all)
+         o=0
+         for item in all :
+             #获取元素直接存储
+             """
+             item_username
+             item_verified
+             item_main
+             item_from
+             """
+             mid=item["mid"]
+             check=self.check_mid(mid)
+             if check==1:
+                 break
+             item_username=item.find("div",class_="card").find("div",class_="card-feed").find("div",class_="content").find("div",class_="info").find("a",target="_blank")
+             verified=item.find("div",class_="card").find("div",class_="card-feed").find("div",class_="content").find("div",class_="info").find("a",href="//verified.weibo.com/verify")
+             item_main=item.find("div",class_="card").find("div",class_="card-feed").find("div",class_="content").find("p",style="display: none")
+             main_text=str(item_main)
+             item_keyword=[]
+
+             type(link_basic_word)
+             for i in range(len(link_basic_word)-1):
+                 count=main_text.count(link_basic_word[i])
+                 if count==0:
+                     continue
+                 else:item_keyword.append(link_basic_word[i])
+             str(item_keyword)
+             item_from=item.find("div",class_="card").find("div",class_="card-feed").find("div",class_="content").find("p",class_="from")
+             item_username=pymysql.escape_string(str(item_username))
+             item_main=pymysql.escape_string(str(item_main))
+             item_keyword=pymysql.escape_string(str(item_keyword))
+             item_from=pymysql.escape_string(str(item_from))
+             sql = "insert into basic(Writer,Text,Keyword,Wbfrom,Verified,mid) values ('%s','%s','%s','%s','%s',%s)" %(item_username,item_main,item_keyword,item_from,verified,mid)
+             print(sql)
+             res = self.cursor.execute(sql)
+             self.conn.commit()
+             o+=1
+             if o>=length-5:
+                 break
+         return 1
+
+
+
+#【用户】nick-name="*"
+#【认证】微博官方认证
+#【主要内容】<p class="txt" node-type="feed_list_content_full" *</p>
+#【时间】click:wb_time">*</a>
+#【来自】<a href="//app.weibo.com/?" rel="nofollow">*</a>
+#【其他】<div class="card-act">*</div>
+S=Spider_wb()
+while True:
+    try:
+        time.sleep(random.randint(2, 5))
+        S.get_item(url_sina_q)
+    except:
+        print("error")
+        continue
+
+
