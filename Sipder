@@ -11,14 +11,10 @@ from selenium.webdriver.chrome.options import Options
 #常量区
 url_sina_wb="https://weibo.com/"
 url_sina_q="https://s.weibo.com/weibo?"
-link_add_word=['公安','警方','警员','警察','警局','警探','公共安全','police',
-                 '警铃','警容','警嫂','警花','警司','警监','警务','警衔','警棍',
-                 '警卫','警械','警车','警风','警种','警服','逮捕','拘留','通缉',
-                 '监视居住','取保候审','狱警','警长','巡逻','恐怖主义','出警','派出所',
-                 '乘警','铁警','火警','海警','处警','督查','自杀','交警','警力','警官']
+link_add_word=[*******]
 link_basic_word=[i for i in link_add_word]
 
-key_word=['公安','警']
+key_word=[*******]
 header_selfdefine={
      'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.122 Safari/537.36',
      'Accept': '*/*',
