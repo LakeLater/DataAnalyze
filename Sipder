@@ -85,7 +85,7 @@ class Spider_wb():
              mid=item["mid"]
              check=self.check_mid(mid)
              if check==1:
-                 break
+                 continue
              item_username=item.find("div",class_="card").find("div",class_="card-feed").find("div",class_="content").find("div",class_="info").find("a",target="_blank")
              verified=item.find("div",class_="card").find("div",class_="card-feed").find("div",class_="content").find("div",class_="info").find("a",href="//verified.weibo.com/verify")
              item_main=item.find("div",class_="card").find("div",class_="card-feed").find("div",class_="content").find("p",style="display: none")
